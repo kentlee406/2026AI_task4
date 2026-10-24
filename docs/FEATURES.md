@@ -293,9 +293,23 @@
 
 ### GET /api/orders — 訂單列表
 
-**行為描述**：回傳當前使用者的所有訂單，依建立時間降序排列。無分頁。
+**行為描述**：回傳當前使用者自己的訂單，依建立時間由新到舊排列（同一秒建立者以寫入順序決定），支援狀態篩選與分頁。
 
-**回應欄位**：id, order_no, subtotal, shipping_fee, shipping_method, is_remote_area, is_express, total_amount, status, created_at
+**Query 參數**：
+
+| 參數 | 型別 | 預設 | 說明 |
+|------|------|------|------|
+| status | string | 不篩選 | `pending`、`paid` 或 `failed` |
+| page | integer | 1 | 正整數 |
+| limit | integer | 10 | 正整數，最大 50，超過以 50 計 |
+
+`status` 不在允許值內，或 `page`、`limit` 不是正整數（含重複帶入同一參數）→ 400 VALIDATION_ERROR。
+
+**回應**：`data: { orders: [...], pagination: { page, limit, total, totalPages } }`，格式與 `GET /api/admin/orders` 相同；`total` 為篩選後的筆數。
+
+**訂單欄位**：id, order_no, subtotal, discount, coupon_code, shipping_fee, shipping_method, is_remote_area, is_express, total_amount, status, created_at
+
+`page`、`limit` 超過安全整數範圍（例如 `page=99999999999999999999`）一律視為不合法，回 400。前端訂單頁（`public/js/pages/orders.js`）以 `limit=50` 依 `totalPages` 逐頁取完訂單；篩選與分頁 UI 尚未實作。
 
 ### GET /api/orders/:id — 訂單詳情
 

@@ -344,13 +344,46 @@
         }
       },
       "get": {
-        "summary": "自己的訂單列表",
+        "summary": "自己的訂單列表（可依狀態篩選並分頁，依建立時間由新到舊）",
         "tags": [
           "Orders"
         ],
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "paid",
+                "failed"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "每頁筆數，最大 50，超過以 50 計",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 10
+            }
           }
         ],
         "responses": {
@@ -402,6 +435,23 @@
                               }
                             }
                           }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "page": {
+                              "type": "integer"
+                            },
+                            "limit": {
+                              "type": "integer"
+                            },
+                            "total": {
+                              "type": "integer"
+                            },
+                            "totalPages": {
+                              "type": "integer"
+                            }
+                          }
                         }
                       }
                     },
@@ -416,6 +466,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "status、page 或 limit 不合法"
           }
         }
       }
