@@ -26,12 +26,31 @@ function findOrderForUser(orderId, userId) {
   return db.prepare('SELECT * FROM orders WHERE id = ? AND user_id = ?').get(orderId, userId);
 }
 
-function listOrdersForUser(userId) {
-  return db.prepare(
+const ORDER_STATUSES = Object.freeze(['pending', 'paid', 'failed']);
+
+/**
+ * List a member's own orders, newest first, with optional status filter and pagination.
+ * created_at only has one-second precision, so rowid breaks ties for orders in the same second.
+ */
+function listOrdersForUser(userId, { status, page = 1, limit = 10 } = {}) {
+  const conditions = ['user_id = ?'];
+  const params = [userId];
+
+  if (status) {
+    conditions.push('status = ?');
+    params.push(status);
+  }
+
+  const where = conditions.join(' AND ');
+  const total = db.prepare(`SELECT COUNT(*) AS count FROM orders WHERE ${where}`).get(...params).count;
+  const orders = db.prepare(
     `SELECT id, order_no, subtotal, discount, coupon_code, shipping_fee, shipping_method,
             is_remote_area, is_express, total_amount, status, created_at
-     FROM orders WHERE user_id = ? ORDER BY created_at DESC`
-  ).all(userId);
+     FROM orders WHERE ${where}
+     ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?`
+  ).all(...params, limit, (page - 1) * limit);
+
+  return { orders, total };
 }
 
 function getOrderItems(orderId) {
@@ -115,6 +134,7 @@ function createOrderFromCart({ userId, recipient, delivery, cartItems, subtotal,
 }
 
 module.exports = {
+  ORDER_STATUSES,
   generateOrderNo,
   serializeOrder,
   findOrderById,

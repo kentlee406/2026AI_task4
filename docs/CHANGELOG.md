@@ -5,6 +5,7 @@
 ## [Unreleased]
 
 ### Added
+- 我的訂單篩選與分頁（Issue #3）：`GET /api/orders` 支援 `status`、`page`、`limit`，回應改為 `{ orders, pagination }`；不合法的參數回 400，同一秒建立的訂單以 `rowid` 穩定排序。前端訂單頁改以 `limit=50` 取得
 - 結帳優惠碼（Issue #1）：新增 `src/utils/coupon.js`（`FLOWER100`、`SPRING10`、已失效的 `SUMMER50`）；`POST /api/orders` 可傳入 `couponCode`，訂單新增 `coupon_code`、`discount` 欄位，免運門檻以折扣後小計判斷
 
 ### Changed

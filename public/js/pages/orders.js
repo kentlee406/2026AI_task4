@@ -15,7 +15,7 @@ createApp({
 
     onMounted(async function () {
       try {
-        const res = await apiFetch('/api/orders');
+        const res = await apiFetch('/api/orders?limit=50');
         orders.value = res.data.orders;
       } catch (e) {
         orders.value = [];
