@@ -47,6 +47,13 @@ npm run test:acceptance -- coupon       # 只跑檔名包含 coupon 的測試
 - 只透過 HTTP API 驗證，不依賴內部函式名稱或資料表結構；每個測試自建會員與指定價格的商品。
 - 在 Issue 完成前預期失敗，因此不包含在 `test:unit`、`test:integration` 與 CI 中。
 
+### 使用規則
+
+- **驗收測試就是 Issue 的規格**：測試失敗時，修改實作去符合它，而不是修改測試。`tests/acceptance/` 不得新增、刪除、改名或編輯。
+- 指定檔名時，`--` 後面接檔名關鍵字（例如 `coupon`、`order-filter`），只會執行檔名包含該關鍵字的測試檔。
+- 開 PR 前，先跑該 Issue 對應的驗收測試，並用 `git diff main --stat -- tests/acceptance` 確認沒有輸出。
+- GitHub Actions CI 只執行 Unit 與 Integration Test，**不會**執行驗收測試，所以通過 CI 不代表驗收測試通過，需在本機自行執行。
+
 ## 持續整合（CI）
 
 `.github/workflows/test.yml` 在 push、pull request 與手動觸發時，以 Node.js 24 執行：
