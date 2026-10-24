@@ -42,3 +42,5 @@ postman_collection.json
 
 # Claude Code local settings
 .claude/*.local.json
+
+prompt
