@@ -26,11 +26,19 @@ describe('Shipping module', () => {
       expect(result.shippingFee).toBe(120);
     });
 
-    it.skip('商品小計 1,500 元時免基本運費', () => {
+    it('商品小計 1,500 元時免基本運費', () => {
       const result = calculateShipping({ subtotal: 1500, method: HOME_DELIVERY });
 
       expect(result.qualifiesForFreeShipping).toBe(true);
       expect(result.shippingFee).toBe(0);
+    });
+
+    it.each([
+      ['超商取貨', CONVENIENCE_STORE, 1499, 60],
+      ['超商取貨', CONVENIENCE_STORE, 1500, 0],
+      ['超商取貨', CONVENIENCE_STORE, 1501, 0]
+    ])('%s小計 %i 元時運費為 %i 元', (_label, method, subtotal, expectedFee) => {
+      expect(calculateShipping({ subtotal, method }).shippingFee).toBe(expectedFee);
     });
 
     it.each([
