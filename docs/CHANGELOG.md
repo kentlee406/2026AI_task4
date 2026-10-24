@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+### Added
+- 結帳優惠碼（Issue #1）：新增 `src/utils/coupon.js`（`FLOWER100`、`SPRING10`、已失效的 `SUMMER50`）；`POST /api/orders` 可傳入 `couponCode`，訂單新增 `coupon_code`、`discount` 欄位，免運門檻以折扣後小計判斷
+
 ### Changed
 - 抽出 `src/services/orderService.js`（訂單查詢、序列化與建單 transaction）與 `src/services/paymentService.js`（QueryTradeInfo 結果判斷與付款狀態更新）
 - 新增 `src/utils/validators.js` 統一路由輸入驗證；Shipping 模組改以規則表描述，單元測試改為 table-driven

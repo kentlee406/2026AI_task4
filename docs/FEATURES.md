@@ -221,6 +221,19 @@
 
 ## 配送費用計算
 
+### Coupon 工具模組（src/utils/coupon.js）
+
+| 優惠碼 | 折扣內容 | 使用條件 |
+|--------|----------|----------|
+| `FLOWER100` | 折抵 100 元 | 商品小計滿 800 元 |
+| `SPRING10` | 商品小計打 9 折（四捨五入），最多折抵 300 元 | 無門檻 |
+| `SUMMER50` | 折抵 50 元 | 已失效，不可使用 |
+
+- 每張訂單最多 1 組優惠碼，不分大小寫，`coupon_code` 以大寫記錄
+- 優惠只折抵商品小計，不折抵運費；免運門檻（1,500 元）以折扣後的商品小計判斷
+- `applyCoupon({ subtotal, couponCode })` 回傳 `{ code, discount }`，不合法時拋出 `CouponError`
+- 訂單新增 `coupon_code`、`discount` 欄位；`GET /api/orders/:id` 與訂單列表都會回傳
+
 ### Shipping 工具模組（src/utils/shipping.js）
 
 **設計原則**：模組為不依賴 Express、SQLite 或前端狀態的純計算邏輯，可以 Vitest 獨立測試。訂單路由僅傳入資料庫商品價格所得小計與經驗證的配送條件。
@@ -255,6 +268,7 @@
 | shippingMethod | string | 是 | `home_delivery` 或 `convenience_store` |
 | isRemoteArea | boolean | 是 | 是否為偏遠地區 |
 | isExpress | boolean | 是 | 是否為當日急件 |
+| couponCode | string | 否 | 優惠碼，不分大小寫；規則見下方 Coupon 模組 |
 
 **業務邏輯**：
 1. 驗證收件人欄位、Email 格式及配送條件
@@ -262,10 +276,10 @@
 3. 購物車為空 → 400 CART_EMPTY
 4. 逐品項檢查庫存，不足者收集名稱 → 400「以下商品庫存不足：名稱1, 名稱2」
 5. 依資料庫價格計算 `subtotal = Σ(price × quantity)`
-6. 調用 Shipping 模組計算 `shippingFee`，並得 `totalAmount = subtotal + shippingFee`
+6. 調用 Coupon 模組計算 `discount`（無效、已失效或未達門檻 → 400 COUPON_INVALID）；再以折扣後小計調用 Shipping 模組計算 `shippingFee`，`totalAmount = subtotal - discount + shippingFee`
 7. 生成 `orderNo = ORD-YYYYMMDD-{5碼UUID大寫}`（日期採台北時間）
 8. **Transaction**：INSERT order（含配送快照） → INSERT order_items（快照名稱+價格） → UPDATE stock → DELETE cart_items
-9. 回傳 201 + 訂單詳情（含 `subtotal`、`shipping_fee`、`total_amount`）
+9. 回傳 201 + 訂單詳情（含 `subtotal`、`discount`、`coupon_code`、`shipping_fee`、`total_amount`）
 
 **錯誤情境**：
 
