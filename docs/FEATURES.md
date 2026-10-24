@@ -309,7 +309,7 @@
 
 **訂單欄位**：id, order_no, subtotal, discount, coupon_code, shipping_fee, shipping_method, is_remote_area, is_express, total_amount, status, created_at
 
-前端訂單頁（`public/js/pages/orders.js`）以 `?limit=50` 取得訂單；篩選與分頁 UI 尚未實作。
+`page`、`limit` 超過安全整數範圍（例如 `page=99999999999999999999`）一律視為不合法，回 400。前端訂單頁（`public/js/pages/orders.js`）以 `limit=50` 依 `totalPages` 逐頁取完訂單；篩選與分頁 UI 尚未實作。
 
 ### GET /api/orders/:id — 訂單詳情
 

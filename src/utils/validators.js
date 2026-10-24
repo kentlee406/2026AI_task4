@@ -14,7 +14,7 @@ function isOptionalString(value) {
  */
 function parsePositiveInteger(value) {
   const parsed = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value;
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 module.exports = {

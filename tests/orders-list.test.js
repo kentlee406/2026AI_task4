@@ -110,8 +110,41 @@ describe('Orders API - 列表篩選與分頁', () => {
     expect(failed.body.data.pagination).toEqual({ page: 1, limit: 10, total: 0, totalPages: 0 });
   });
 
+  it('status 篩選搭配分頁時，total 與 OFFSET 都以篩選後的結果計算', async () => {
+    const { token } = await registerUser();
+    const orders = await createOrders(token, product, 4);
+    await request(app)
+      .patch(`/api/orders/${orders[0].id}/pay`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ action: 'success' });
+
+    const res = await listOrders(token, '?status=pending&page=2&limit=1');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.orders.map(order => order.id)).toEqual([orders[2].id]);
+    expect(res.body.data.pagination).toEqual({ page: 2, limit: 1, total: 3, totalPages: 3 });
+  });
+
+  it('limit=50 為上限，limit=1 每頁只回傳 1 筆', async () => {
+    const { token } = await registerUser();
+    await createOrders(token, product, 2);
+
+    const max = await listOrders(token, '?limit=50');
+    expect(max.body.data.pagination.limit).toBe(50);
+
+    const one = await listOrders(token, '?limit=1');
+    expect(one.body.data.orders).toHaveLength(1);
+    expect(one.body.data.pagination).toMatchObject({ limit: 1, total: 2, totalPages: 2 });
+  });
+
   it.each([
     '?status=unknown',
+    '?status[]=paid',
+    '?page[a]=1',
+    '?limit[x]=1',
+    '?page=99999999999999999999',
+    '?page=9007199254740992',
+    '?limit=99999999999999999999',
     '?status=paid&status=pending',
     '?page=0',
     '?page=-1',

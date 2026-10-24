@@ -15,8 +15,17 @@ createApp({
 
     onMounted(async function () {
       try {
-        const res = await apiFetch('/api/orders?limit=50');
-        orders.value = res.data.orders;
+        // 列表 API 已分頁（每頁最多 50 筆），逐頁取完才不會漏掉較舊的訂單
+        const all = [];
+        let page = 1;
+        let totalPages = 1;
+        do {
+          const res = await apiFetch('/api/orders?limit=50&page=' + page);
+          all.push(...res.data.orders);
+          totalPages = res.data.pagination.totalPages;
+          page += 1;
+        } while (page <= totalPages);
+        orders.value = all;
       } catch (e) {
         orders.value = [];
       } finally {
