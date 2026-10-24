@@ -96,7 +96,9 @@ function initializeDatabase() {
     ['shipping_fee', 'INTEGER NOT NULL DEFAULT 0'],
     ['shipping_method', "TEXT NOT NULL DEFAULT 'home_delivery'"],
     ['is_remote_area', 'INTEGER NOT NULL DEFAULT 0'],
-    ['is_express', 'INTEGER NOT NULL DEFAULT 0']
+    ['is_express', 'INTEGER NOT NULL DEFAULT 0'],
+    ['coupon_code', 'TEXT'],
+    ['discount', 'INTEGER NOT NULL DEFAULT 0']
   ];
 
   for (const [column, definition] of shippingColumns) {

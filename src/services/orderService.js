@@ -28,7 +28,7 @@ function findOrderForUser(orderId, userId) {
 
 function listOrdersForUser(userId) {
   return db.prepare(
-    `SELECT id, order_no, subtotal, shipping_fee, shipping_method,
+    `SELECT id, order_no, subtotal, discount, coupon_code, shipping_fee, shipping_method,
             is_remote_area, is_express, total_amount, status, created_at
      FROM orders WHERE user_id = ? ORDER BY created_at DESC`
   ).all(userId);
@@ -62,9 +62,10 @@ function findInsufficientItems(cartItems) {
 /**
  * Create an order from the member's cart in one transaction:
  * insert order → snapshot items → deduct stock → clear cart.
- * Amounts must already be calculated by the caller.
+ * Amounts must already be calculated by the caller:
+ * shipping.totalAmount is (subtotal - discount) + shipping fee.
  */
-function createOrderFromCart({ userId, recipient, delivery, cartItems, subtotal, shipping }) {
+function createOrderFromCart({ userId, recipient, delivery, cartItems, subtotal, coupon, shipping }) {
   const orderId = uuidv4();
   const orderNo = generateOrderNo();
   const merchantTradeNo = orderNo.replace(/-/g, '');
@@ -72,9 +73,9 @@ function createOrderFromCart({ userId, recipient, delivery, cartItems, subtotal,
   const insertOrder = db.prepare(
     `INSERT INTO orders (
        id, order_no, user_id, recipient_name, recipient_email, recipient_address,
-       subtotal, shipping_fee, shipping_method, is_remote_area, is_express,
+       subtotal, discount, coupon_code, shipping_fee, shipping_method, is_remote_area, is_express,
        total_amount, merchant_trade_no
-     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const insertItem = db.prepare(
     `INSERT INTO order_items (id, order_id, product_id, product_name, product_price, quantity)
@@ -92,6 +93,8 @@ function createOrderFromCart({ userId, recipient, delivery, cartItems, subtotal,
       recipient.email,
       recipient.address,
       subtotal,
+      coupon.discount,
+      coupon.code,
       shipping.shippingFee,
       delivery.method,
       delivery.isRemoteArea ? 1 : 0,

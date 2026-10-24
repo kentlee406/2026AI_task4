@@ -3,6 +3,7 @@ const db = require('../database');
 const authMiddleware = require('../middleware/authMiddleware');
 const { queryTradeInfo } = require('../utils/ecpay');
 const { SHIPPING_METHODS, calculateShipping } = require('../utils/shipping');
+const { CouponError, applyCoupon } = require('../utils/coupon');
 const {
   serializeOrder,
   findOrderById,
@@ -59,6 +60,9 @@ function testEnvOnly(req, res, next) {
  *                 type: boolean
  *               isExpress:
  *                 type: boolean
+ *               couponCode:
+ *                 type: string
+ *                 description: 選填優惠碼（FLOWER100、SPRING10），不分大小寫
  *     responses:
  *       201:
  *         description: 訂單建立成功
@@ -76,6 +80,11 @@ function testEnvOnly(req, res, next) {
  *                       type: string
  *                     subtotal:
  *                       type: integer
+ *                     discount:
+ *                       type: integer
+ *                     coupon_code:
+ *                       type: string
+ *                       nullable: true
  *                     shipping_fee:
  *                       type: integer
  *                     shipping_method:
@@ -108,7 +117,7 @@ function testEnvOnly(req, res, next) {
  *                 message:
  *                   type: string
  *       400:
- *         description: 購物車為空或庫存不足或收件資訊缺失
+ *         description: 購物車為空、庫存不足、收件資訊缺失，或優惠碼無效／已失效／未達門檻
  */
 router.post('/', (req, res) => {
   const {
@@ -117,7 +126,8 @@ router.post('/', (req, res) => {
     recipientAddress,
     shippingMethod,
     isRemoteArea,
-    isExpress
+    isExpress,
+    couponCode
   } = req.body;
   const userId = req.user.userId;
 
@@ -178,8 +188,19 @@ router.post('/', (req, res) => {
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.product_price * item.quantity, 0
   );
+  let coupon;
+  try {
+    coupon = applyCoupon({ subtotal, couponCode });
+  } catch (err) {
+    if (err instanceof CouponError) {
+      return res.status(400).json({ data: null, error: 'COUPON_INVALID', message: err.message });
+    }
+    throw err;
+  }
+
+  // Free shipping is decided on the discounted subtotal; the discount never applies to shipping.
   const shipping = calculateShipping({
-    subtotal,
+    subtotal: subtotal - coupon.discount,
     method: shippingMethod,
     isRemoteArea,
     isExpress
@@ -191,6 +212,7 @@ router.post('/', (req, res) => {
     delivery: { method: shippingMethod, isRemoteArea, isExpress },
     cartItems,
     subtotal,
+    coupon,
     shipping
   });
 
@@ -202,6 +224,8 @@ router.post('/', (req, res) => {
       id: order.id,
       order_no: order.order_no,
       subtotal: order.subtotal,
+      discount: order.discount,
+      coupon_code: order.coupon_code,
       shipping_fee: order.shipping_fee,
       shipping_method: order.shipping_method,
       is_remote_area: Boolean(order.is_remote_area),
@@ -309,6 +333,11 @@ router.get('/', (req, res) => {
  *                       type: string
  *                     subtotal:
  *                       type: integer
+ *                     discount:
+ *                       type: integer
+ *                     coupon_code:
+ *                       type: string
+ *                       nullable: true
  *                     shipping_fee:
  *                       type: integer
  *                     shipping_method:
